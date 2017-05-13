@@ -24,3 +24,18 @@ powerset :: [Char] -> [[Char]]
 powerset []  = [[]]
 powerset [x] = [[]] ++ [[x]]
 powerset (x:xs) = unique (map ([x] ++) (powerset xs) ++ powerset [x] ++ powerset xs)
+
+isDigit :: Char -> Bool
+isDigit c = c <= '0' &&  c >= '9'
+
+--- toDigit :: Char -> Maybe Int
+--- toDigit c
+---   | isDigit c   = (Just (c - '0'))
+---   | otherwise   = undefined
+
+--- pred :: Int -> Int
+--- pred 0       = 0
+--- pred (n + 1) = n
+
+reverseWords :: String -> String
+reverseWords = unwords . reverse . words
