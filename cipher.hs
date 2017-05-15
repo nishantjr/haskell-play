@@ -5,9 +5,17 @@ import Test.QuickCheck
 substitutionCipher :: (Char -> Char) -> String -> String
 substitutionCipher f s = map f s
 
-rotateWithOffset :: Int -> Int -> Char -> Char
-rotateWithOffset n offset c
-    = chr $ (ord c - offset + n) `mod` 26 + offset
+-- Composable library of substitutions ------------------
+swapChars :: Char -> Char -> Char -> Char
+swapChars a b char
+    | char == a     = b
+    | char == b     = a
+    | otherwise     = char
+
+swapLowerUpper c
+    | isUpper c = toLower c
+    | isLower c = toUpper c
+    | otherwise = c
 
 rotateLowerN :: Int -> Char -> Char
 rotateLowerN n c
@@ -19,9 +27,17 @@ rotateUpperN n c
     | isUpper c = rotateWithOffset n (ord 'A') c
     | otherwise = c
 
-caesar3Inv = substitutionCipher $ (rotateLowerN $ 0 - 3).(rotateUpperN $ 0 - 3)
-caesar3    = substitutionCipher $ (rotateLowerN 3).      (rotateUpperN 3)
+rotateN n = (rotateLowerN n).(rotateUpperN n)
 
+caesarN n  = substitutionCipher $ rotateN n
+
+caesar3Inv = caesarN $ 0 - 3
+caesar3    = caesarN 3
+
+--- Helpers ------------------------------------------
+rotateWithOffset :: Int -> Int -> Char -> Char
+rotateWithOffset n offset c
+    = chr $ (ord c - offset + n) `mod` 26 + offset
 
 --- Testing helpers ----------------------------------
 testToUpper = substitutionCipher toUpper
@@ -44,6 +60,10 @@ test = do mapM_ (putStrLn.runTest) tests
                 ("toUpper", testToUpper, "Hello World!", "HELLO WORLD!"),
                 ("caesar3", caesar3    , "Hello World!", "Khoor Zruog!"),
                 ("caesar3Inv", caesar3Inv,
-                                 "Hello World! abc xyz", "Ebiil Tloia! xyz uvw")
+                                 "Hello World! abc xyz", "Ebiil Tloia! xyz uvw"),
+                ("complexCipher", substitutionCipher $
+                    (swapChars '!' '@').(swapChars ' ' '&').
+                    swapLowerUpper.(rotateN 13),
+                    "Hello World! abc xyz", "uRYYB&jBEYQ@&NOP&KLM")
             ]
 main = test
