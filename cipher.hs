@@ -1,6 +1,6 @@
 import Data.Char
 import Test.QuickCheck
-
+import Data.List
 
 substitutionCipher :: (Char -> Char) -> String -> String
 substitutionCipher f s = map f s
@@ -34,6 +34,11 @@ caesarN n  = substitutionCipher $ rotateN n
 caesar3Inv = caesarN $ 0 - 3
 caesar3    = caesarN 3
 
+--- Validate substitutions ---------------------------
+
+isBijection :: (Char -> Char) -> Bool
+isBijection f = 256 == length (nub $ map (f.chr) [0..255])
+
 --- Helpers ------------------------------------------
 rotateWithOffset :: Int -> Int -> Char -> Char
 rotateWithOffset n offset c
@@ -46,17 +51,24 @@ prop_caesarUncaesar :: String -> Bool
 prop_caesarUncaesar s = (caesar3 . caesar3Inv) s == s
 
 --- Test Framework -----------------------------------
-runTest :: (String, (String -> String), String, String) -> String
-runTest (name, f, input, expected)
+runTestCiphers :: (String, (String -> String), String, String) -> String
+runTestCiphers (name, f, input, expected)
         | expected == actual    = "passed: " ++ name
         | otherwise             = "FAILED: " ++ name ++ ": " ++ expected ++
                                   " ≠ " ++ actual
     where actual = f input
+
+runValidateSubst :: (String, (Char -> Char), Bool) -> String
+runValidateSubst (name, f, expected)
+        | expected == actual    = "passed: valid: " ++ name
+        | otherwise             = "FAILED: valid: " ++ name ++ ": "
+                                 ++ (show expected) ++ " ≠ " ++ (show actual)
+    where actual = isBijection f
 test :: IO ()
-test = do mapM_ (putStrLn.runTest) tests
---          quickCheck prop_caesarUncaesar
---          toLower doesn't work as expected -- '\246' "is lower"
-   where tests = [
+test = do mapM_ (putStrLn.runTestCiphers) cipherSpecs
+          mapM_ (putStrLn.runValidateSubst) substValidSpec
+          putStr "QuickCheck: "; quickCheck prop_caesarUncaesar
+   where cipherSpecs = [
                 ("toUpper", testToUpper, "Hello World!", "HELLO WORLD!"),
                 ("caesar3", caesar3    , "Hello World!", "Khoor Zruog!"),
                 ("caesar3Inv", caesar3Inv,
@@ -65,5 +77,16 @@ test = do mapM_ (putStrLn.runTest) tests
                     (swapChars '!' '@').(swapChars ' ' '&').
                     swapLowerUpper.(rotateN 13),
                     "Hello World! abc xyz", "uRYYB&jBEYQ@&NOP&KLM")
+            ]
+         substValidSpec = [
+               ("identity", id, True),
+               ("toUpper", toUpper, False),
+               ("toLower", toLower, False),
+
+               -- These fail because isLower detects other latin chars as
+               -- lowercase
+               ("rotate3", rotateN 3, True),
+               ("rotate25", rotateN 25, True),
+               ("rotate3Inv", rotateN $ 0 - 3, True)
             ]
 main = test
