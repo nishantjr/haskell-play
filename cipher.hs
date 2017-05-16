@@ -1,6 +1,6 @@
 import Data.Char
-import Test.QuickCheck
 import Data.List
+import Test.QuickCheck
 
 substitutionCipher :: (Char -> Char) -> String -> String
 substitutionCipher = map
@@ -19,12 +19,12 @@ swapLowerUpper c
 
 rotateLowerN :: Int -> Char -> Char
 rotateLowerN n c
-    | isLower c = rotateWithOffset n (ord 'a') c
+    | isLowerEnglish c = rotateWithOffset n (ord 'a') c
     | otherwise = c
 
 rotateUpperN :: Int -> Char -> Char
 rotateUpperN n c
-    | isUpper c = rotateWithOffset n (ord 'A') c
+    | isUpperEnglish c = rotateWithOffset n (ord 'A') c
     | otherwise = c
 
 rotateN n = (rotateLowerN n).(rotateUpperN n)
@@ -43,6 +43,15 @@ isBijection f = 256 == length (nub $ map (f.chr) [0..255])
 rotateWithOffset :: Int -> Int -> Char -> Char
 rotateWithOffset n offset c
     = chr $ (ord c - offset + n) `mod` 26 + offset
+
+isLowerEnglish :: Char -> Bool
+isLowerEnglish c
+    | c >= 'a' && c <= 'z'      = True
+    | otherwise                 = False
+isUpperEnglish :: Char -> Bool
+isUpperEnglish c
+    | c >= 'A' && c <= 'Z'      = True
+    | otherwise                 = False
 
 --- Testing helpers ----------------------------------
 testToUpper = substitutionCipher toUpper
@@ -82,9 +91,6 @@ test = do mapM_ (putStrLn.runTestCiphers) cipherSpecs
                ("identity", id, True),
                ("toUpper", toUpper, False),
                ("toLower", toLower, False),
-
-               -- These fail because isLower detects other latin chars as
-               -- lowercase
                ("rotate3", rotateN 3, True),
                ("rotate25", rotateN 25, True),
                ("rotate3Inv", rotateN $ 0 - 3, True)
