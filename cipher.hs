@@ -93,6 +93,8 @@ test = do mapM_ (putStrLn.runTestCiphers) cipherSpecs
                ("toLower", toLower, False),
                ("rotate3", rotateN 3, True),
                ("rotate25", rotateN 25, True),
-               ("rotate3Inv", rotateN $ 0 - 3, True)
+               ("rotate3Inv", rotateN $ 0 - 3, True),
+               ("complexCipher", (swapChars '!' '@').(swapChars ' ' '&')
+                   .swapLowerUpper.(rotateN 13), True)
             ]
 main = test
