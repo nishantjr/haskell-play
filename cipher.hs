@@ -3,7 +3,7 @@ import Test.QuickCheck
 import Data.List
 
 substitutionCipher :: (Char -> Char) -> String -> String
-substitutionCipher f s = map f s
+substitutionCipher = map
 
 -- Composable library of substitutions ------------------
 swapChars :: Char -> Char -> Char -> Char
