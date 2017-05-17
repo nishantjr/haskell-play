@@ -54,7 +54,10 @@ isUpperEnglish c
     | otherwise                 = False
 
 --- Testing helpers ----------------------------------
+complexSubst  = ((swapChars '!' '@').(swapChars ' ' '&')
+                   .swapLowerUpper.(rotateN 13))
 cipherToUpper = substitutionCipher toUpper
+complexCipher = substitutionCipher complexSubst
 
 prop_caesarUncaesar :: String -> Bool
 prop_caesarUncaesar s = (caesar3 . caesar3Inv) s == s
@@ -88,9 +91,8 @@ test = do mapM_ (putStrLn.showResult) testCases
           ("caesar3", checkCipher caesar3    "Hello World!" "Khoor Zruog!"),
           ("caesar3Inv",checkCipher  caesar3Inv
                            "Hello World! abc xyz" "Ebiil Tloia! xyz uvw"),
-          ("complexCipher", checkCipher (substitutionCipher $
-                (swapChars '!' '@').(swapChars ' ' '&').swapLowerUpper.(rotateN 13))
-              "Hello World! abc xyz" "uRYYB&jBEYQ@&NOP&KLM"),
+          ("complexCipher", checkCipher complexCipher
+                           "Hello World! abc xyz" "uRYYB&jBEYQ@&NOP&KLM"),
 
           ("identity",      checkBijection id             True),
           ("toUpper",       checkBijection toUpper        False),
@@ -98,7 +100,6 @@ test = do mapM_ (putStrLn.showResult) testCases
           ("rotate3",       checkBijection (rotateN 3)    True),
           ("rotate25",      checkBijection (rotateN 25)   True),
           ("rotate3Inv",    checkBijection (rotateN $ -3) True),
-          ("complexCipher", checkBijection ((swapChars '!' '@').(swapChars ' ' '&')
-                   .swapLowerUpper.(rotateN 13)) True)
+          ("complexCipher", checkBijection complexSubst   True)
         ]
 main = test
