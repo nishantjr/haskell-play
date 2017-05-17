@@ -60,11 +60,14 @@ prop_caesarUncaesar :: String -> Bool
 prop_caesarUncaesar s = (caesar3 . caesar3Inv) s == s
 
 --- Test Framework -----------------------------------
-runTestCiphers :: (String, (String -> String), String, String) -> String
-runTestCiphers (name, f, input, expected)
-        | expected == actual    = "passed: " ++ name
-        | otherwise             = "FAILED: " ++ name ++ ": " ++ expected ++
-                                  " ≠ " ++ actual
+showResult :: (String, Maybe String) -> String
+showResult (name, Nothing) = "passed: " ++ name
+showResult (name, Just msg) = "FAILED: " ++ name ++ ": " ++ msg
+
+checkCipher :: (String -> String) -> String -> String -> Maybe String
+checkCipher f input expected
+        | expected == actual    = Nothing
+        | otherwise             = Just $ expected ++ " ≠ " ++ actual
     where actual = f input
 
 runValidateSubst :: (String, (Char -> Char), Bool) -> String
@@ -74,18 +77,17 @@ runValidateSubst (name, f, expected)
                                  ++ (show expected) ++ " ≠ " ++ (show actual)
     where actual = isBijection f
 test :: IO ()
-test = do mapM_ (putStrLn.runTestCiphers) cipherSpecs
+test = do mapM_ (putStrLn.showResult) cipherSpecs
           mapM_ (putStrLn.runValidateSubst) substValidSpec
           putStr "QuickCheck: "; quickCheck prop_caesarUncaesar
    where cipherSpecs = [
-                ("toUpper", cipherToUpper, "Hello World!", "HELLO WORLD!"),
-                ("caesar3", caesar3    , "Hello World!", "Khoor Zruog!"),
-                ("caesar3Inv", caesar3Inv,
-                                 "Hello World! abc xyz", "Ebiil Tloia! xyz uvw"),
-                ("complexCipher", substitutionCipher $
-                    (swapChars '!' '@').(swapChars ' ' '&').
-                    swapLowerUpper.(rotateN 13),
-                    "Hello World! abc xyz", "uRYYB&jBEYQ@&NOP&KLM")
+          ("toUpper", checkCipher cipherToUpper "Hello World!" "HELLO WORLD!"),
+          ("caesar3", checkCipher caesar3    "Hello World!" "Khoor Zruog!"),
+          ("caesar3Inv",checkCipher  caesar3Inv
+                           "Hello World! abc xyz" "Ebiil Tloia! xyz uvw"),
+          ("complexCipher", checkCipher (substitutionCipher $
+                (swapChars '!' '@').(swapChars ' ' '&').swapLowerUpper.(rotateN 13))
+              "Hello World! abc xyz" "uRYYB&jBEYQ@&NOP&KLM")
             ]
          substValidSpec = [
                ("identity", id, True),
