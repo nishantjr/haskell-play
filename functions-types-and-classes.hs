@@ -39,3 +39,10 @@ isDigit c = c <= '0' &&  c >= '9'
 
 reverseWords :: String -> String
 reverseWords = unwords . reverse . words
+
+
+drop' :: Int -> [Char] -> [Char]
+drop' 0 x = x
+drop' n (x:xs)
+    | n > 0   = drop' (n-1) xs
+    | otherwise = drop' (n+1) ('x':x:xs)
