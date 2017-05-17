@@ -54,7 +54,7 @@ isUpperEnglish c
     | otherwise                 = False
 
 --- Testing helpers ----------------------------------
-testToUpper = substitutionCipher toUpper
+cipherToUpper = substitutionCipher toUpper
 
 prop_caesarUncaesar :: String -> Bool
 prop_caesarUncaesar s = (caesar3 . caesar3Inv) s == s
@@ -78,7 +78,7 @@ test = do mapM_ (putStrLn.runTestCiphers) cipherSpecs
           mapM_ (putStrLn.runValidateSubst) substValidSpec
           putStr "QuickCheck: "; quickCheck prop_caesarUncaesar
    where cipherSpecs = [
-                ("toUpper", testToUpper, "Hello World!", "HELLO WORLD!"),
+                ("toUpper", cipherToUpper, "Hello World!", "HELLO WORLD!"),
                 ("caesar3", caesar3    , "Hello World!", "Khoor Zruog!"),
                 ("caesar3Inv", caesar3Inv,
                                  "Hello World! abc xyz", "Ebiil Tloia! xyz uvw"),
