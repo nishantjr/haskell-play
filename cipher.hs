@@ -70,34 +70,35 @@ checkCipher f input expected
         | otherwise             = Just $ expected ++ " ≠ " ++ actual
     where actual = f input
 
-runValidateSubst :: (String, (Char -> Char), Bool) -> String
-runValidateSubst (name, f, expected)
-        | expected == actual    = "passed: valid: " ++ name
-        | otherwise             = "FAILED: valid: " ++ name ++ ": "
-                                 ++ (show expected) ++ " ≠ " ++ (show actual)
+checkBijection :: (Char -> Char) -> Bool -> Maybe String
+checkBijection f expected
+        | expected == actual    = Nothing
+        | otherwise             = Just msg
     where actual = isBijection f
+          msg
+            | expected  = "isn't a bijection, but expectecd it to be one"
+            | otherwise = "is a bijection, but expected it not to be one"
+
 test :: IO ()
-test = do mapM_ (putStrLn.showResult) cipherSpecs
-          mapM_ (putStrLn.runValidateSubst) substValidSpec
+test = do mapM_ (putStrLn.showResult) testCases
           putStr "QuickCheck: "; quickCheck prop_caesarUncaesar
    where
-       cipherSpecs = [
+       testCases = [
           ("toUpper", checkCipher cipherToUpper "Hello World!" "HELLO WORLD!"),
           ("caesar3", checkCipher caesar3    "Hello World!" "Khoor Zruog!"),
           ("caesar3Inv",checkCipher  caesar3Inv
                            "Hello World! abc xyz" "Ebiil Tloia! xyz uvw"),
           ("complexCipher", checkCipher (substitutionCipher $
                 (swapChars '!' '@').(swapChars ' ' '&').swapLowerUpper.(rotateN 13))
-              "Hello World! abc xyz" "uRYYB&jBEYQ@&NOP&KLM")
-        ]
-       substValidSpec = [
-          ("identity", id, True),
-          ("toUpper", toUpper, False),
-          ("toLower", toLower, False),
-          ("rotate3", rotateN 3, True),
-          ("rotate25", rotateN 25, True),
-          ("rotate3Inv", rotateN $ -3, True),
-          ("complexCipher", (swapChars '!' '@').(swapChars ' ' '&')
-                   .swapLowerUpper.(rotateN 13), True)
+              "Hello World! abc xyz" "uRYYB&jBEYQ@&NOP&KLM"),
+
+          ("identity",      checkBijection id             True),
+          ("toUpper",       checkBijection toUpper        False),
+          ("toLower",       checkBijection toLower        False),
+          ("rotate3",       checkBijection (rotateN 3)    True),
+          ("rotate25",      checkBijection (rotateN 25)   True),
+          ("rotate3Inv",    checkBijection (rotateN $ -3) True),
+          ("complexCipher", checkBijection ((swapChars '!' '@').(swapChars ' ' '&')
+                   .swapLowerUpper.(rotateN 13)) True)
         ]
 main = test
