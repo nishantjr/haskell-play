@@ -80,7 +80,8 @@ test :: IO ()
 test = do mapM_ (putStrLn.showResult) cipherSpecs
           mapM_ (putStrLn.runValidateSubst) substValidSpec
           putStr "QuickCheck: "; quickCheck prop_caesarUncaesar
-   where cipherSpecs = [
+   where
+       cipherSpecs = [
           ("toUpper", checkCipher cipherToUpper "Hello World!" "HELLO WORLD!"),
           ("caesar3", checkCipher caesar3    "Hello World!" "Khoor Zruog!"),
           ("caesar3Inv",checkCipher  caesar3Inv
@@ -88,15 +89,15 @@ test = do mapM_ (putStrLn.showResult) cipherSpecs
           ("complexCipher", checkCipher (substitutionCipher $
                 (swapChars '!' '@').(swapChars ' ' '&').swapLowerUpper.(rotateN 13))
               "Hello World! abc xyz" "uRYYB&jBEYQ@&NOP&KLM")
-            ]
-         substValidSpec = [
-               ("identity", id, True),
-               ("toUpper", toUpper, False),
-               ("toLower", toLower, False),
-               ("rotate3", rotateN 3, True),
-               ("rotate25", rotateN 25, True),
-               ("rotate3Inv", rotateN $ -3, True),
-               ("complexCipher", (swapChars '!' '@').(swapChars ' ' '&')
+        ]
+       substValidSpec = [
+          ("identity", id, True),
+          ("toUpper", toUpper, False),
+          ("toLower", toLower, False),
+          ("rotate3", rotateN 3, True),
+          ("rotate25", rotateN 25, True),
+          ("rotate3Inv", rotateN $ -3, True),
+          ("complexCipher", (swapChars '!' '@').(swapChars ' ' '&')
                    .swapLowerUpper.(rotateN 13), True)
-            ]
+        ]
 main = test
