@@ -54,13 +54,13 @@ letter = sat char isLetter
 a +++ b = \s -> case parse a s of Nothing -> parse b s
                                   x       -> x
 
-many1 :: Parser a -> Parser [a]
-many1 p = do x  <- p
-             xs <- many p
-             return (x:xs)
+some :: Parser a -> Parser [a]
+some p = do x  <- p
+            xs <- many p
+            return (x:xs)
 
 many :: Parser a -> Parser [a]
-many p = many1 p +++ return []
+many p = some p +++ return []
 
 nat :: Parser Int
 nat = do ds <- many digit
