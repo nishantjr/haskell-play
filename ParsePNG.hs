@@ -13,8 +13,8 @@ main =
         print $ runParser lookahead raw
         print $ runParser consumeByte raw
         print $ runParser getByte raw
-        -- print $ runParser (byte 109) raw
-        -- print $ runParser (byte 108) raw
+        print $ runParser (byte 109) raw
+        print $ runParser (byte 108) raw
 
 -- On failure, return an error message and the old state
 newtype Parser a = Parser
@@ -74,13 +74,12 @@ getByte = do b <- lookahead
              return b
 
 byte :: Word8 -> Parser ()
-byte = undefined
-{-
-byte n  =
-     do b <- lookahead
-        if n == b then getByte >>= return ()
-                  else parseError "Expected n got b"
+byte b = do b' <- lookahead
+            if b == b' then consumeByte
+                       else parseError $
+                           "expected " ++ show b ++ " got " ++ show b'
 
+{-
 
 char c  = byte.ord
 cr      = byte 0x0d
