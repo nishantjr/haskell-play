@@ -9,12 +9,16 @@ main :: IO ()
 main =
      do path:_ <- getArgs
         raw <- B.readFile path
-        print $ runParser getByte raw
+        print $ runParser (parseError "I'm an error!") raw
+        print $ runParser lookahead raw
+        print $ runParser consumeByte raw
+        -- print $ runParser getByte raw
         -- print $ runParser (byte 109) raw
         -- print $ runParser (byte 108) raw
 
 -- On failure, return an error message and the old state
-type Parser a = ParseState -> Either (String, ParseState) (a, ParseState)
+newtype Parser a = Parser
+    (ParseState -> Either (String, ParseState) (a, ParseState))
 
 {-
 instance Functor Parser where
@@ -24,11 +28,11 @@ instance Functor Parser where
                               Right (x, state') -> Right (f x, state')
 -}
 
-runParser :: Parser a -> ByteString -> Either String a
-runParser parser bytes =
+runParser :: Parser a -> ByteString -> Either String (a, Int)
+runParser (Parser parser) bytes =
     case parser init of
         Left  (err, _) -> Left err
-        Right (x, _)   -> Right x
+        Right (x, state)   -> Right (x, B.length (remainder state))
     where
         init = ParseState bytes
 
@@ -36,25 +40,22 @@ data ParseState = ParseState
     {  remainder                :: ByteString
     }
 
-parseError :: String -> Parser a
-parseError message state = Left (message, state)
+parseError :: String -> Parser ()
+parseError message = Parser $ \state -> Left (message, state)
 
 lookahead :: Parser Word8
-lookahead state =
-    if B.null bytes then Left  ("No bytes left to parse", state)
-                    else Right (b, state)
-    where
-        bytes  = remainder state
-        b      = B.head bytes
+lookahead = Parser $ \state ->
+    if B.null (remainder state)
+        then Left  ("No bytes left to parse", state)
+        else Right (B.head (remainder state), state)
 
 consumeByte :: Parser ()
-consumeByte state =
-    if B.null bytes then Left  ("No bytes left to parse", state)
-                    else Right ((), state')
-    where
-        bytes  = remainder state
-        state' = ParseState $ B.tail $ remainder state
+consumeByte = Parser $ \state ->
+    if B.null (remainder state)
+        then Left  ("No bytes left to parse", state)
+        else Right ((), ParseState $ B.tail $ remainder state)
 
+{-
 getByte :: Parser Word8
 getByte state =
     if B.null bytes then Left  ("No bytes left to parse", state)
@@ -63,6 +64,7 @@ getByte state =
         bytes  = remainder state
         b      = B.head bytes
         state' = ParseState $ B.tail $ remainder state
+-}
 {-
 getByte state =
      do b <- lookahead
