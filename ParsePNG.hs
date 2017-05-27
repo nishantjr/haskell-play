@@ -20,13 +20,21 @@ main =
 newtype Parser a = Parser
     (ParseState -> Either (String, ParseState) (a, ParseState))
 
-{-
 instance Functor Parser where
-    -- fmap :: (a -> b) -> Parser a -> Parser b
-    fmap f p = \state -> case p state of
-                              Left x -> Left x
-                              Right (x, state') -> Right (f x, state')
--}
+    fmap f (Parser p) = Parser $ \state ->
+        case p state of
+             Left  x           -> Left x
+             Right (x, state') -> Right (f x, state')
+
+instance Applicative Parser where
+    pure x = Parser $ \state -> Right (x, state)
+    (Parser p) <*> (Parser q) = Parser $ \state ->
+        case p state of
+            Left  x           -> Left x
+            Right (f, state') ->
+                case q state' of
+                    Left  x            -> Left  x
+                    Right (x, state'') -> Right (f x, state'')
 
 runParser :: Parser a -> ByteString -> Either String (a, Int)
 runParser (Parser parser) bytes =
