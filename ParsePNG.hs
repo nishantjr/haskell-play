@@ -12,7 +12,7 @@ main =
         print $ runParser (parseError "I'm an error!") raw
         print $ runParser lookahead raw
         print $ runParser consumeByte raw
-        -- print $ runParser getByte raw
+        print $ runParser getByte raw
         -- print $ runParser (byte 109) raw
         -- print $ runParser (byte 108) raw
 
@@ -35,6 +35,12 @@ instance Applicative Parser where
                 case q state' of
                     Left  x            -> Left  x
                     Right (x, state'') -> Right (f x, state'')
+
+instance Monad Parser where
+    (Parser p) >>= f = Parser $ \state ->
+        case p state of Left x -> Left x
+                        Right (x, state') -> let (Parser q) = f x in q state'
+
 
 runParser :: Parser a -> ByteString -> Either String (a, Int)
 runParser (Parser parser) bytes =
@@ -63,22 +69,9 @@ consumeByte = Parser $ \state ->
         then Left  ("No bytes left to parse", state)
         else Right ((), ParseState $ B.tail $ remainder state)
 
-{-
-getByte :: Parser Word8
-getByte state =
-    if B.null bytes then Left  ("No bytes left to parse", state)
-                    else Right (b, state')
-    where
-        bytes  = remainder state
-        b      = B.head bytes
-        state' = ParseState $ B.tail $ remainder state
--}
-{-
-getByte state =
-     do b <- lookahead
-        consumeByte
-        return b
--}
+getByte = do b <- lookahead
+             consumeByte
+             return b
 
 byte :: Word8 -> Parser ()
 byte = undefined
