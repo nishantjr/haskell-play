@@ -14,7 +14,7 @@ main =
         print $ runParser consumeByte raw
         print $ runParser getByte raw
         print $ runParser (byte 109) raw
-        print $ runParser (byte 108) raw
+        print $ runParser ((byte 109) >> (byte 122)) raw
 
 -- On failure, return an error message and the old state
 newtype Parser a = Parser
@@ -45,13 +45,15 @@ instance Monad Parser where
 runParser :: Parser a -> ByteString -> Either String (a, Int)
 runParser (Parser parser) bytes =
     case parser init of
-        Left  (err, _) -> Left err
+        Left  (err, state) -> Left $ errMsg err state
         Right (x, state)   -> Right (x, B.length (remainder state))
     where
-        init = ParseState bytes
+        init = ParseState bytes 0
+        errMsg err state = err ++ " at byte " ++ show (bytesConsumed state)
 
 data ParseState = ParseState
     {  remainder                :: ByteString
+    ,  bytesConsumed            :: Word
     }
 
 parseError :: String -> Parser ()
@@ -67,7 +69,8 @@ consumeByte :: Parser ()
 consumeByte = Parser $ \state ->
     if B.null (remainder state)
         then Left  ("No bytes left to parse", state)
-        else Right ((), ParseState $ B.tail $ remainder state)
+        else Right ((),
+                ParseState (B.tail$ remainder state) (bytesConsumed state + 1))
 
 getByte = do b <- lookahead
              consumeByte
