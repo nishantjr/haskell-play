@@ -7,7 +7,8 @@ import System.Environment (getArgs)
 
 main :: IO ()
 main =
-     do path:_ <- getArgs
+     do args <- getArgs
+        let path = Prelude.head args
         raw <- B.readFile path
         print $ runParser (parseError "I'm an error!") raw
         print $ runParser lookahead raw
@@ -15,6 +16,9 @@ main =
         print $ runParser getByte raw
         print $ runParser (byte 109) raw
         print $ runParser ((byte 109) >> (byte 122)) raw
+        print $ runParser (char 'm') raw
+        print $ runParser (string "module") raw
+        print $ runParser header raw
 
 -- On failure, return an error message and the old state
 newtype Parser a = Parser
@@ -82,12 +86,10 @@ byte b = do b' <- lookahead
                        else parseError $
                            "expected " ++ show b ++ " got " ++ show b'
 
-{-
-
-char c  = byte.ord
+char    = byte.fromIntegral.ord
+string :: String -> Parser [()]
+string  = mapM char
 cr      = byte 0x0d
 lf      = byte 0x0a
 ctrlZ   = byte 0x1a
-string  = mapM char
 header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
--}
