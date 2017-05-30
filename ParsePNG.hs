@@ -1,14 +1,15 @@
 module ParsePNG where
 
 import qualified Data.ByteString as B
-import Data.Char (ord)
-import Data.Word (Word8)
+import Data.Char (ord, chr)
+import Data.Word (Word8, Word32)
+import Data.Bits
 import System.Environment (getArgs)
 
 main :: IO ()
 main =
      do args <- getArgs
-        let path = Prelude.head args
+        let path = head args
         raw <- B.readFile path
         print $ runParser (parseError "I'm an error!") raw
         print $ runParser lookahead raw
@@ -18,7 +19,7 @@ main =
         print $ runParser ((byte 109) >> (byte 122)) raw
         print $ runParser (char 'm') raw
         print $ runParser (string "module") raw
-        print $ runParser header raw
+        print $ runParser (header >> sequence (take 4 (repeat chunk))) raw
 
 -- On failure, return an error message and the old state
 newtype Parser a = Parser
@@ -44,7 +45,6 @@ instance Monad Parser where
     (Parser p) >>= f = Parser $ \state ->
         case p state of Left x -> Left x
                         Right (x, state') -> let (Parser q) = f x in q state'
-
 
 runParser :: Parser a -> B.ByteString -> Either String (a, Int)
 runParser (Parser parser) bytes =
@@ -86,6 +86,33 @@ byte b = do b' <- lookahead
                        else parseError $
                            "expected " ++ show b ++ " got " ++ show b'
 
+readWord8 :: Parser Word8
+readWord8 = do b <- lookahead
+               consumeByte
+               return b
+
+word8sToWord32 :: [Word8] -> Word32
+word8sToWord32 = foldl accum 0
+  where
+    accum a o = (a `shiftL` 8) .|. fromIntegral o
+
+readWord32 :: Parser Word32
+readWord32 = fmap word8sToWord32 parserOfList
+    where listOfParser = take 4 (repeat readWord8)
+          parserOfList = sequence listOfParser
+
+readWord8String :: Int -> Parser [Word8]
+readWord8String len = sequence (take len (repeat readWord8))
+
+word8ToChar :: Word8 -> Char
+word8ToChar = chr.fromIntegral.toInteger
+
+word32ToInt :: Word32 -> Int
+word32ToInt = fromIntegral.toInteger
+
+readASCIIString :: Int -> Parser String
+readASCIIString len = fmap (map word8ToChar) (readWord8String len)
+
 char    = byte.fromIntegral.ord
 string :: String -> Parser [()]
 string  = mapM char
@@ -93,3 +120,15 @@ cr      = byte 0x0d
 lf      = byte 0x0a
 ctrlZ   = byte 0x1a
 header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
+
+data Chunk = Chunk
+    { cType :: String
+    , cData :: [Word8]
+    }
+instance Show Chunk where
+    show (Chunk x y) = show (x, y)
+chunk   = do length <- readWord32
+             chunkType <- readASCIIString 4
+             chunkData <- readWord8String $ word32ToInt length
+             readWord8String 4
+             return (Chunk chunkType chunkData)
