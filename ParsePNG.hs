@@ -1,6 +1,6 @@
 module ParsePNG where
 
-import Data.ByteString as B
+import qualified Data.ByteString as B
 import Data.Char (ord)
 import Data.Word (Word8)
 import System.Environment (getArgs)
@@ -46,7 +46,7 @@ instance Monad Parser where
                         Right (x, state') -> let (Parser q) = f x in q state'
 
 
-runParser :: Parser a -> ByteString -> Either String (a, Int)
+runParser :: Parser a -> B.ByteString -> Either String (a, Int)
 runParser (Parser parser) bytes =
     case parser init of
         Left  (err, state) -> Left $ errMsg err state
@@ -56,7 +56,7 @@ runParser (Parser parser) bytes =
         errMsg err state = err ++ " at byte " ++ show (bytesConsumed state)
 
 data ParseState = ParseState
-    {  remainder                :: ByteString
+    {  remainder                :: B.ByteString
     ,  bytesConsumed            :: Word
     }
 
