@@ -32,8 +32,7 @@ data Chunk = Chunk
     { cType :: String
     , cData :: [Word8]
     }
-instance Show Chunk where
-    show (Chunk x y) = show (x, y)
+    deriving Show
 
 ----------------------------------------------------------------------
 -- Parser Infrastructure 
