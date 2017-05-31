@@ -28,6 +28,13 @@ main =
 data PNG = PNG
     deriving Show
 
+data Chunk = Chunk
+    { cType :: String
+    , cData :: [Word8]
+    }
+instance Show Chunk where
+    show (Chunk x y) = show (x, y)
+
 ----------------------------------------------------------------------
 -- Parser Infrastructure 
 
@@ -74,7 +81,19 @@ data ParseState = ParseState
 -- Parsers
 
 pngParser :: Parser PNG
-pngParser = return PNG
+pngParser = do header
+               ihdr <- chunk
+               return PNG
+
+header :: Parser ()
+header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
+
+chunk :: Parser Chunk
+chunk   = do length <- readWord32
+             chunkType <- readASCIIString 4
+             chunkData <- readWord8String $ word32ToInt length
+             readWord8String 4
+             return (Chunk chunkType chunkData)
 
 parseError :: String -> Parser ()
 parseError message = Parser $ \state -> Left (message, state)
@@ -138,17 +157,3 @@ string  = mapM_ char
 cr      = byte 0x0d
 lf      = byte 0x0a
 ctrlZ   = byte 0x1a
-
-header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
-
-data Chunk = Chunk
-    { cType :: String
-    , cData :: [Word8]
-    }
-instance Show Chunk where
-    show (Chunk x y) = show (x, y)
-chunk   = do length <- readWord32
-             chunkType <- readASCIIString 4
-             chunkData <- readWord8String $ word32ToInt length
-             readWord8String 4
-             return (Chunk chunkType chunkData)
