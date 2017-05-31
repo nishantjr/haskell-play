@@ -19,7 +19,17 @@ main =
         print $ runParser ((byte 109) >> (byte 122)) raw
         print $ runParser (char 'm') raw
         print $ runParser (string "module") raw
+        print $ runParser pngParser raw
         print $ runParser (header >> sequence (take 4 (repeat chunk))) raw
+
+----------------------------------------------------------------------
+-- PNG Data Structure
+
+data PNG = PNG
+    deriving Show
+
+----------------------------------------------------------------------
+-- Parser Infrastructure 
 
 -- On failure, return an error message and the old state
 newtype Parser a = Parser
@@ -59,6 +69,12 @@ data ParseState = ParseState
     {  remainder                :: B.ByteString
     ,  bytesConsumed            :: Word
     }
+
+----------------------------------------------------------------------
+-- Parsers
+
+pngParser :: Parser PNG
+pngParser = return PNG
 
 parseError :: String -> Parser ()
 parseError message = Parser $ \state -> Left (message, state)
@@ -113,12 +129,16 @@ word32ToInt = fromIntegral.toInteger
 readASCIIString :: Int -> Parser String
 readASCIIString len = fmap (map word8ToChar) (readWord8String len)
 
+char    :: Char -> Parser ()
 char    = byte.fromIntegral.ord
-string :: String -> Parser [()]
-string  = mapM char
+
+string :: String -> Parser ()
+string  = mapM_ char
+
 cr      = byte 0x0d
 lf      = byte 0x0a
 ctrlZ   = byte 0x1a
+
 header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
 
 data Chunk = Chunk
