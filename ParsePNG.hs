@@ -19,12 +19,12 @@ main =
         print $ runParser ((byte 109) >> (byte 122)) raw
         print $ runParser (char 'm') raw
         print $ runParser (string "module") raw
-        print $ runParser (header >> sequence (take 4 (repeat chunk))) raw
         case runParser pngParser raw of
             Left  err -> putStrLn err
             Right (png, bytesConsumed) -> do
                 print png
                 print $ size png
+                print $ colorType png
                 print bytesConsumed
 
 ----------------------------------------------------------------------
@@ -32,7 +32,11 @@ main =
 
 data PNG = PNG
     { size :: (Word32, Word32)
+    , colorType :: ColorType
     }
+    deriving Show
+
+data ColorType = Grayscale | RGB | Palette | GrayscaleAlpha | RGBAlpha
     deriving Show
 
 data Chunk = Chunk
@@ -92,10 +96,23 @@ pngParser = do header
                string "IHDR"
                width <- readWord32
                height <- readWord32
-               return $ PNG (width, height)
+               _bitDepth <- readWord8
+               tempColorType <- colorTypeP
+               return $ PNG (width, height) tempColorType
 
 header :: Parser ()
 header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
+
+colorTypeP :: Parser ColorType
+colorTypeP = do byte <- lookahead
+                case byte of
+                    0 -> return Grayscale
+                    2 -> return RGB
+                    3 -> return Palette
+                    4 -> return GrayscaleAlpha
+                    6 -> return RGBAlpha
+                    _ -> parseError $ "Bad colorType byte " ++ show byte
+
 
 chunk :: Parser Chunk
 chunk   = do length <- readWord32
