@@ -11,7 +11,7 @@ main =
      do args <- getArgs
         let path = head args
         raw <- B.readFile path
-        print $ runParser (parseError "I'm an error!") raw
+        print $ runParser ((parseError :: String -> Parser ()) "I'm an error!") raw
         print $ runParser lookahead raw
         print $ runParser consumeByte raw
         print $ runParser getByte raw
@@ -94,7 +94,7 @@ chunk   = do length <- readWord32
              readWord8String 4
              return (Chunk chunkType chunkData)
 
-parseError :: String -> Parser ()
+parseError :: String -> Parser a
 parseError message = Parser $ \state -> Left (message, state)
 
 lookahead :: Parser Word8
