@@ -92,7 +92,11 @@ data ParseState = ParseState
 
 pngParser :: Parser PNG
 pngParser = do header
-               readWord32
+               ihdrLen <- readWord32
+               if ihdrLen == 13 then return ()
+                                else parseError $
+                                    "IHDR chunk must be 13 bytes" ++
+                                    " got: " ++ (show ihdrLen)
                string "IHDR"
                width <- readWord32
                height <- readWord32
