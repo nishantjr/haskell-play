@@ -19,13 +19,20 @@ main =
         print $ runParser ((byte 109) >> (byte 122)) raw
         print $ runParser (char 'm') raw
         print $ runParser (string "module") raw
-        print $ runParser pngParser raw
         print $ runParser (header >> sequence (take 4 (repeat chunk))) raw
+        case runParser pngParser raw of
+            Left  err -> putStrLn err
+            Right (png, bytesConsumed) -> do
+                print png
+                print $ size png
+                print bytesConsumed
 
 ----------------------------------------------------------------------
 -- PNG Data Structure
 
 data PNG = PNG
+    { size :: (Word32, Word32)
+    }
     deriving Show
 
 data Chunk = Chunk
@@ -81,8 +88,11 @@ data ParseState = ParseState
 
 pngParser :: Parser PNG
 pngParser = do header
-               ihdr <- chunk
-               return PNG
+               readWord32
+               string "IHDR"
+               width <- readWord32
+               height <- readWord32
+               return $ PNG (width, height)
 
 header :: Parser ()
 header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
