@@ -40,7 +40,7 @@ data ColorType = Grayscale | RGB | Palette | GrayscaleAlpha | RGBAlpha
     deriving Show
 
 data Chunk = Chunk
-    { cType :: String
+    { cType :: [Word8]
     , cData :: [Word8]
     }
     deriving Show
@@ -124,9 +124,9 @@ colorTypeP = do byte <- lookahead
 
 chunk :: Parser Chunk
 chunk   = do length <- word32
-             chunkType <- readASCIIString 4
-             chunkData <- word8String $ word32ToInt length
-             word8String 4
+             chunkType <- binaryData 4
+             chunkData <- binaryData $ word32ToInt length
+             word32
              return (Chunk chunkType chunkData)
 
 parseError :: String -> Parser a
@@ -170,17 +170,14 @@ word32 = fmap word8sToWord32 parserOfList
     where listOfParser = take 4 (repeat word8)
           parserOfList = sequence listOfParser
 
-word8String :: Int -> Parser [Word8]
-word8String len = sequence (take len (repeat word8))
+binaryData :: Int -> Parser [Word8]
+binaryData len = sequence (take len (repeat word8))
 
 word8ToChar :: Word8 -> Char
 word8ToChar = chr.fromIntegral.toInteger
 
 word32ToInt :: Word32 -> Int
 word32ToInt = fromIntegral.toInteger
-
-readASCIIString :: Int -> Parser String
-readASCIIString len = fmap (map word8ToChar) (word8String len)
 
 constChar    :: Char -> Parser ()
 constChar    = constByte.fromIntegral.ord
