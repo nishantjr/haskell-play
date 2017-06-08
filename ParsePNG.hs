@@ -17,7 +17,7 @@ main =
         print $ runParser getByte raw
         print $ runParser (constByte 109) raw
         print $ runParser ((constByte 109) >> (constByte 122)) raw
-        print $ runParser (char 'm') raw
+        print $ runParser (constChar 'm') raw
         print $ runParser (constString "module") raw
         case runParser pngParser raw of
             Left  err -> putStrLn err
@@ -182,11 +182,11 @@ word32ToInt = fromIntegral.toInteger
 readASCIIString :: Int -> Parser String
 readASCIIString len = fmap (map word8ToChar) (readWord8String len)
 
-char    :: Char -> Parser ()
-char    = constByte.fromIntegral.ord
+constChar    :: Char -> Parser ()
+constChar    = constByte.fromIntegral.ord
 
 constString :: String -> Parser ()
-constString  = mapM_ char
+constString  = mapM_ constChar
 
 cr      = constByte 0x0d
 lf      = constByte 0x0a
