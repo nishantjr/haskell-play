@@ -1,6 +1,7 @@
 module ParsePNG where
 
 import qualified Data.ByteString as B
+import Data.ByteString.Char8 (pack)
 import Data.Char (ord, chr)
 import Data.Word (Word8, Word32)
 import Data.Bits
@@ -25,6 +26,7 @@ main =
                 print png
                 print $ size png
                 print $ colorType png
+                print $ palette png
                 print bytesConsumed
 
 ----------------------------------------------------------------------
@@ -33,6 +35,7 @@ main =
 data PNG = PNG
     { size :: (Word32, Word32)
     , colorType :: ColorType
+    , palette  :: Maybe [ (Word8, Word8, Word8) ]  -- List of RGBs
     }
     deriving Show
 
@@ -91,7 +94,8 @@ data ParseState = ParseState
 -- Parsers
 
 pngParser :: Parser PNG
-pngParser = do header
+pngParser = do
+               header
                ihdrLen <- word32
                if ihdrLen == 13 then return ()
                                 else parseError $
@@ -106,7 +110,11 @@ pngParser = do header
                _filterMethod <- word8
                _interlaceMethod <- word8
                _crc <- word32
-               return $ PNG (width, height) tempColorType
+               chunk  -- sRGB
+               chunk  -- gAMA
+               chunk  -- cHRM
+               palette <- optional paletteChunk
+               return $ PNG (width, height) tempColorType palette
 
 header :: Parser ()
 header  = do constByte 0x89; constString "PNG"; cr; lf; ctrlZ; lf
@@ -119,6 +127,15 @@ colorTypeP = do      (constByte 0 >> return Grayscale)
                 .||. (constByte 6 >> return RGBAlpha)
                 .||. (do byte <- lookahead
                          parseError $ "Bad colorType byte " ++ show byte)
+
+paletteChunk :: Parser [ (Word8, Word8, Word8) ]
+paletteChunk = do length <- word32
+                  constString "PLTE"
+                  chunkData <- binaryData $ word32ToInt length
+                  _crc <- word32
+                  return $ triplets $ B.unpack chunkData
+    where triplets (r:g:b:rest) = (r, g, b):(triplets rest)
+          triplets []           = []
 
 chunk :: Parser Chunk
 chunk   = do length <- word32
@@ -134,6 +151,10 @@ parseError message = Parser $ \state -> Left (message, state)
 Parser p .||. Parser q = Parser $ \state -> case p state of
                                 Left (err, state') -> q state
                                 Right x          -> Right x
+optional :: Parser a -> Parser (Maybe a)
+optional (Parser p) = Parser $ \state -> case p state of
+                                Left (err, state') -> Right(Nothing, state)
+                                Right(x, state') -> Right(Just x, state')
 
 lookahead :: Parser Word8
 lookahead = Parser $ \state ->
