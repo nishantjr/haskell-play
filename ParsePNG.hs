@@ -73,11 +73,11 @@ instance Monad Parser where
         case p state of Left x -> Left x
                         Right (x, state') -> let (Parser q) = f x in q state'
 
-runParser :: Parser a -> B.ByteString -> Either String (a, Int)
+runParser :: Parser a -> B.ByteString -> Either String (a, Word)
 runParser (Parser parser) bytes =
     case parser init of
         Left  (err, state) -> Left $ errMsg err state
-        Right (x, state)   -> Right (x, B.length (remainder state))
+        Right (x, state)   -> Right (x, bytesConsumed state)
     where
         init = ParseState bytes 0
         errMsg err state = err ++ " at byte " ++ show (bytesConsumed state)
