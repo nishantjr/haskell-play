@@ -15,8 +15,8 @@ main =
         print $ runParser lookahead raw
         print $ runParser consumeByte raw
         print $ runParser getByte raw
-        print $ runParser (byte 109) raw
-        print $ runParser ((byte 109) >> (byte 122)) raw
+        print $ runParser (constByte 109) raw
+        print $ runParser ((constByte 109) >> (constByte 122)) raw
         print $ runParser (char 'm') raw
         print $ runParser (constString "module") raw
         case runParser pngParser raw of
@@ -109,7 +109,7 @@ pngParser = do header
                return $ PNG (width, height) tempColorType
 
 header :: Parser ()
-header  = do byte 0x89; constString "PNG"; cr; lf; ctrlZ; lf
+header  = do constByte 0x89; constString "PNG"; cr; lf; ctrlZ; lf
 
 colorTypeP :: Parser ColorType
 colorTypeP = do byte <- lookahead
@@ -149,11 +149,11 @@ getByte = do b <- lookahead
              consumeByte
              return b
 
-byte :: Word8 -> Parser ()
-byte b = do b' <- lookahead
-            if b == b' then consumeByte
-                       else parseError $
-                           "expected " ++ show b ++ " got " ++ show b'
+constByte :: Word8 -> Parser ()
+constByte b = do b' <- lookahead
+                 if b == b' then consumeByte
+                            else parseError $
+                                   "expected " ++ show b ++ " got " ++ show b'
 
 readWord8 :: Parser Word8
 readWord8 = do b <- lookahead
@@ -183,11 +183,11 @@ readASCIIString :: Int -> Parser String
 readASCIIString len = fmap (map word8ToChar) (readWord8String len)
 
 char    :: Char -> Parser ()
-char    = byte.fromIntegral.ord
+char    = constByte.fromIntegral.ord
 
 constString :: String -> Parser ()
 constString  = mapM_ char
 
-cr      = byte 0x0d
-lf      = byte 0x0a
-ctrlZ   = byte 0x1a
+cr      = constByte 0x0d
+lf      = constByte 0x0a
+ctrlZ   = constByte 0x1a
