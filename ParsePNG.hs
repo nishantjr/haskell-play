@@ -18,7 +18,7 @@ main =
         print $ runParser (byte 109) raw
         print $ runParser ((byte 109) >> (byte 122)) raw
         print $ runParser (char 'm') raw
-        print $ runParser (string "module") raw
+        print $ runParser (constString "module") raw
         case runParser pngParser raw of
             Left  err -> putStrLn err
             Right (png, bytesConsumed) -> do
@@ -97,7 +97,7 @@ pngParser = do header
                                 else parseError $
                                     "IHDR chunk must be 13 bytes" ++
                                     " got: " ++ (show ihdrLen)
-               string "IHDR"
+               constString "IHDR"
                width <- readWord32
                height <- readWord32
                _bitDepth <- readWord8
@@ -109,7 +109,7 @@ pngParser = do header
                return $ PNG (width, height) tempColorType
 
 header :: Parser ()
-header  = do byte 0x89; string "PNG"; cr; lf; ctrlZ; lf
+header  = do byte 0x89; constString "PNG"; cr; lf; ctrlZ; lf
 
 colorTypeP :: Parser ColorType
 colorTypeP = do byte <- lookahead
@@ -185,8 +185,8 @@ readASCIIString len = fmap (map word8ToChar) (readWord8String len)
 char    :: Char -> Parser ()
 char    = byte.fromIntegral.ord
 
-string :: String -> Parser ()
-string  = mapM_ char
+constString :: String -> Parser ()
+constString  = mapM_ char
 
 cr      = byte 0x0d
 lf      = byte 0x0a
