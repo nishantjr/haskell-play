@@ -92,20 +92,20 @@ data ParseState = ParseState
 
 pngParser :: Parser PNG
 pngParser = do header
-               ihdrLen <- readWord32
+               ihdrLen <- word32
                if ihdrLen == 13 then return ()
                                 else parseError $
                                     "IHDR chunk must be 13 bytes" ++
                                     " got: " ++ (show ihdrLen)
                constString "IHDR"
-               width <- readWord32
-               height <- readWord32
-               _bitDepth <- readWord8
+               width <- word32
+               height <- word32
+               _bitDepth <- word8
                tempColorType <- colorTypeP
-               _compression <- readWord8
-               _filterMethod <- readWord8
-               _interlaceMethod <- readWord8
-               _crc <- readWord32
+               _compression <- word8
+               _filterMethod <- word8
+               _interlaceMethod <- word8
+               _crc <- word32
                return $ PNG (width, height) tempColorType
 
 header :: Parser ()
@@ -123,10 +123,10 @@ colorTypeP = do byte <- lookahead
 
 
 chunk :: Parser Chunk
-chunk   = do length <- readWord32
+chunk   = do length <- word32
              chunkType <- readASCIIString 4
-             chunkData <- readWord8String $ word32ToInt length
-             readWord8String 4
+             chunkData <- word8String $ word32ToInt length
+             word8String 4
              return (Chunk chunkType chunkData)
 
 parseError :: String -> Parser a
@@ -155,23 +155,23 @@ constByte b = do b' <- lookahead
                             else parseError $
                                    "expected " ++ show b ++ " got " ++ show b'
 
-readWord8 :: Parser Word8
-readWord8 = do b <- lookahead
-               consumeByte
-               return b
+word8 :: Parser Word8
+word8 = do b <- lookahead
+           consumeByte
+           return b
 
 word8sToWord32 :: [Word8] -> Word32
 word8sToWord32 = foldl accum 0
   where
     accum a o = (a `shiftL` 8) .|. fromIntegral o
 
-readWord32 :: Parser Word32
-readWord32 = fmap word8sToWord32 parserOfList
-    where listOfParser = take 4 (repeat readWord8)
+word32 :: Parser Word32
+word32 = fmap word8sToWord32 parserOfList
+    where listOfParser = take 4 (repeat word8)
           parserOfList = sequence listOfParser
 
-readWord8String :: Int -> Parser [Word8]
-readWord8String len = sequence (take len (repeat readWord8))
+word8String :: Int -> Parser [Word8]
+word8String len = sequence (take len (repeat word8))
 
 word8ToChar :: Word8 -> Char
 word8ToChar = chr.fromIntegral.toInteger
@@ -180,7 +180,7 @@ word32ToInt :: Word32 -> Int
 word32ToInt = fromIntegral.toInteger
 
 readASCIIString :: Int -> Parser String
-readASCIIString len = fmap (map word8ToChar) (readWord8String len)
+readASCIIString len = fmap (map word8ToChar) (word8String len)
 
 constChar    :: Char -> Parser ()
 constChar    = constByte.fromIntegral.ord
