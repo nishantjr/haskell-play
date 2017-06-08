@@ -102,6 +102,10 @@ pngParser = do header
                height <- readWord32
                _bitDepth <- readWord8
                tempColorType <- colorTypeP
+               _compression <- readWord8
+               _filterMethod <- readWord8
+               _interlaceMethod <- readWord8
+               _crc <- readWord32
                return $ PNG (width, height) tempColorType
 
 header :: Parser ()
