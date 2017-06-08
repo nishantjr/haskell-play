@@ -186,7 +186,12 @@ constChar    :: Char -> Parser ()
 constChar    = constByte.fromIntegral.ord
 
 constString :: String -> Parser ()
-constString  = mapM_ constChar
+constString want = Parser $ \state -> case fBinaryData state of
+                    Left x -> Left x
+                    Right (got, state') ->
+                       if pack want == got then Right ((), state')
+                       else Left("expected " ++ want ++ " got " ++ show got, state)
+        where Parser fBinaryData = binaryData $ length want
 
 cr      = constByte 0x0d
 lf      = constByte 0x0a
