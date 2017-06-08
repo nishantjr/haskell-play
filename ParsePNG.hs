@@ -40,8 +40,8 @@ data ColorType = Grayscale | RGB | Palette | GrayscaleAlpha | RGBAlpha
     deriving Show
 
 data Chunk = Chunk
-    { cType :: [Word8]
-    , cData :: [Word8]
+    { cType :: B.ByteString
+    , cData :: B.ByteString
     }
     deriving Show
 
@@ -170,8 +170,8 @@ word32 = fmap word8sToWord32 parserOfList
     where listOfParser = take 4 (repeat word8)
           parserOfList = sequence listOfParser
 
-binaryData :: Int -> Parser [Word8]
-binaryData len = sequence (take len (repeat word8))
+binaryData :: Int -> Parser B.ByteString
+binaryData len = fmap B.pack $ sequence (take len (repeat word8))
 
 word8ToChar :: Word8 -> Char
 word8ToChar = chr.fromIntegral.toInteger
