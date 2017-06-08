@@ -112,15 +112,13 @@ header :: Parser ()
 header  = do constByte 0x89; constString "PNG"; cr; lf; ctrlZ; lf
 
 colorTypeP :: Parser ColorType
-colorTypeP = do byte <- lookahead
-                case byte of
-                    0 -> return Grayscale
-                    2 -> return RGB
-                    3 -> return Palette
-                    4 -> return GrayscaleAlpha
-                    6 -> return RGBAlpha
-                    _ -> parseError $ "Bad colorType byte " ++ show byte
-
+colorTypeP = do      (constByte 0 >> return Grayscale)
+                .||. (constByte 2 >> return RGB)
+                .||. (constByte 3 >> return Palette)
+                .||. (constByte 4 >> return GrayscaleAlpha)
+                .||. (constByte 6 >> return RGBAlpha)
+                .||. (do byte <- lookahead
+                         parseError $ "Bad colorType byte " ++ show byte)
 
 chunk :: Parser Chunk
 chunk   = do length <- word32
@@ -131,6 +129,11 @@ chunk   = do length <- word32
 
 parseError :: String -> Parser a
 parseError message = Parser $ \state -> Left (message, state)
+
+(.||.) :: Parser a -> Parser a -> Parser a
+Parser p .||. Parser q = Parser $ \state -> case p state of
+                                Left (err, state') -> q state
+                                Right x          -> Right x
 
 lookahead :: Parser Word8
 lookahead = Parser $ \state ->
